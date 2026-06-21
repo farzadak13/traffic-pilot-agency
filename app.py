@@ -641,53 +641,73 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # ── Mode Selector ──
-    mode = st.radio(
-        "نوع خروجی:",
-        ["📱 تقویم اینستاگرام", "🔍 کلاستر محتوایی سایت (SEO)"],
-        horizontal=True
-    )
+# ── Mode Selector ──
+mode = st.radio(
+    "نوع خروجی:",
+    ["📱 تقویم اینستاگرام", "🔍 کلاستر محتوایی سایت (SEO)"],
+    horizontal=True
+)
+st.write("")
+
+# ── Form - Dynamic بر اساس mode ──
+with st.container():
+    
+    # ── بخش مشترک هر دو mode ──
+    st.markdown("""
+        <div style='font-size:0.8rem; font-weight:600; color:#475569;
+                    text-transform:uppercase; letter-spacing:1px;
+                    margin-bottom:1rem;'>
+            اطلاعات پایه برند
+        </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        brand_name = st.text_input("نام برند", placeholder="مثلاً: پاما")
+    with c2:
+        niche = st.text_input("حوزه فعالیت", placeholder="مثلاً: کفش چرم طبی")
+    with c3:
+        target_audience = st.text_input(
+            "مخاطب هدف", 
+            placeholder="آقایان ۴۰ ساله کارمند"
+        )
+
     st.write("")
 
-    # ── Form ──
-    with st.container():
+    # ══════════════════════════════════════
+    # بخش اختصاصی اینستاگرام
+    # ══════════════════════════════════════
+    if mode == "📱 تقویم اینستاگرام":
+        
         st.markdown("""
             <div style='font-size:0.8rem; font-weight:600; color:#475569;
                         text-transform:uppercase; letter-spacing:1px;
                         margin-bottom:1rem;'>
-                اطلاعات پایه برند
-            </div>
-        """, unsafe_allow_html=True)
-
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            brand_name = st.text_input("نام برند", placeholder="مثلاً: پاما")
-        with c2:
-            niche = st.text_input("حوزه فعالیت", placeholder="مثلاً: کفش چرم طبی")
-        with c3:
-            target_audience = st.text_input("مخاطب هدف", placeholder="آقایان ۴۰ ساله کارمند")
-
-        st.write("")
-        st.markdown("""
-            <div style='font-size:0.8rem; font-weight:600; color:#475569;
-                        text-transform:uppercase; letter-spacing:1px;
-                        margin-bottom:1rem;'>
-                📊 داده‌های استراتژیک
+                📊 داده‌های استراتژیک اینستاگرام
             </div>
         """, unsafe_allow_html=True)
 
         c4, c5, c6 = st.columns(3)
         with c4:
             current_followers = st.number_input(
-                "فالوور فعلی", min_value=0, value=1500, step=100
+                "فالوور فعلی پیج",
+                min_value=0,
+                value=1500,
+                step=100,
+                help="تعداد فالوور فعلی برای محاسبه Reach ارگانیک"
             )
         with c5:
             total_budget = st.number_input(
-                "بودجه کل (تومان)", min_value=0, value=10_000_000, step=1_000_000
+                "بودجه کل کمپین (تومان)",
+                min_value=0,
+                value=10_000_000,
+                step=1_000_000,
+                help="شامل بوست + اینفلوئنسر + تولید محتوا"
             )
         with c6:
             competitors = st.text_input(
-                "رقبای اصلی", placeholder="نوین چرم، چرم مشهد"
+                "رقبای اصلی (پیج اینستاگرام)",
+                placeholder="@novincharm، @charm_mashhad"
             )
 
         st.write("")
@@ -695,146 +715,255 @@ else:
             <div style='font-size:0.8rem; font-weight:600; color:#475569;
                         text-transform:uppercase; letter-spacing:1px;
                         margin-bottom:1rem;'>
-                🎬 سبک تولید
+                🎬 سبک تولید محتوا
             </div>
         """, unsafe_allow_html=True)
 
-        c7, c8 = st.columns(2)
+        c7, c8, c9 = st.columns(3)
         with c7:
-            admin_on_camera = st.selectbox("حضور جلوی دوربین (محتوای برند)", [
-                "ادمین/مدیر کاملاً جلوی دوربین",
-                "ترکیبی (صداگذاری + کمی چهره)",
-                "فقط محصول (بدون چهره)"
-            ])
+            admin_on_camera = st.selectbox(
+                "حضور جلوی دوربین",
+                [
+                    "ادمین/مدیر کاملاً جلوی دوربین",
+                    "ترکیبی (صداگذاری + کمی چهره)",
+                    "فقط محصول (بدون چهره)"
+                ]
+            )
         with c8:
-            campaign_goal = st.selectbox("هدف اصلی", [
-                "آگاهی و جذب فالوور (TOFU)",
-                "تعامل و داستان‌سرایی (MOFU)",
-                "فروش مستقیم (BOFU)"
-            ])
+            campaign_goal = st.selectbox(
+                "هدف اصلی کمپین",
+                [
+                    "آگاهی و جذب فالوور (TOFU)",
+                    "تعامل و داستان‌سرایی (MOFU)",
+                    "فروش مستقیم (BOFU)"
+                ]
+            )
+        with c9:
+            campaign_phase = st.selectbox(
+                "فاز کمپین",
+                [
+                    "عادی / استمرار (Sustain)",
+                    "تیزینگ (Teasing)",
+                    "رونمایی / لانچ (Launch)"
+                ]
+            )
 
-    st.write("")
+        # مقادیر پیش‌فرض برای SEO (استفاده نمیشه ولی تعریف میشه)
+        domain_authority = None
+        seo_strategy = None
+        monthly_traffic = None
+        cms_platform = None
 
-    # ── Generate Button ──
-    generate_col, _ = st.columns([1, 3])
-    with generate_col:
-        generate = st.button(
-            "⚡ تولید مدیا پلن",
-            use_container_width=True
-        )
+    # ══════════════════════════════════════
+    # بخش اختصاصی SEO
+    # ══════════════════════════════════════
+    else:
+        
+        st.markdown("""
+            <div style='font-size:0.8rem; font-weight:600; color:#475569;
+                        text-transform:uppercase; letter-spacing:1px;
+                        margin-bottom:1rem;'>
+                📊 داده‌های استراتژیک سئو
+            </div>
+        """, unsafe_allow_html=True)
 
-    if generate:
-        if credits <= 0:
-            st.error("اعتبار شما به پایان رسیده است.")
-        elif not brand_name or not niche:
-            st.warning("نام برند و حوزه فعالیت الزامی است.")
+        c4, c5, c6 = st.columns(3)
+        with c4:
+            domain_authority = st.number_input(
+                "Domain Authority سایت",
+                min_value=0,
+                max_value=100,
+                value=15,
+                step=1,
+                help="DA سایت از ابزارهایی مثل Moz یا Ahrefs"
+            )
+        with c5:
+            monthly_traffic = st.number_input(
+                "ترافیک ماهانه فعلی (بازدید)",
+                min_value=0,
+                value=500,
+                step=100,
+                help="از Google Search Console یا ابزار مشابه"
+            )
+        with c6:
+            competitors = st.text_input(
+                "رقبای اصلی (دامنه سایت)",
+                placeholder="novincharm.com، charm-mashhad.ir"
+            )
+
+        st.write("")
+        st.markdown("""
+            <div style='font-size:0.8rem; font-weight:600; color:#475569;
+                        text-transform:uppercase; letter-spacing:1px;
+                        margin-bottom:1rem;'>
+                🔍 تنظیمات استراتژی سئو
+            </div>
+        """, unsafe_allow_html=True)
+
+        c7, c8, c9 = st.columns(3)
+        with c7:
+            seo_strategy = st.selectbox(
+                "اولویت اصلی سئو",
+                [
+                    "پوشش کلمات اطلاعاتی (Blog/Article)",
+                    "پوشش کلمات فروشگاهی (Category/Product)",
+                    "لینک‌سازی داخلی و رپورتاژ"
+                ]
+            )
+        with c8:
+            campaign_goal = st.selectbox(
+                "هدف اصلی محتوا",
+                [
+                    "افزایش ترافیک ارگانیک (TOFU)",
+                    "جذب لید و مشتری (MOFU)",
+                    "افزایش فروش مستقیم (BOFU)"
+                ]
+            )
+        with c9:
+            cms_platform = st.selectbox(
+                "CMS سایت",
+                [
+                    "وردپرس (WordPress)",
+                    "شاپیفای (Shopify)",
+                    "اختصاصی / سفارشی"
+                ]
+            )
+
+        # مقادیر پیش‌فرض برای اینستاگرام (استفاده نمیشه)
+        current_followers = None
+        total_budget = None
+        admin_on_camera = None
+        campaign_phase = None
+
+st.write("")
+
+# ── Generate Button ──
+generate_col, _ = st.columns([1, 3])
+with generate_col:
+    generate = st.button("⚡ تولید پلن", use_container_width=True)
+
+if generate:
+    if credits <= 0:
+        st.error("اعتبار شما به پایان رسیده است.")
+    elif not brand_name or not niche:
+        st.warning("نام برند و حوزه فعالیت الزامی است.")
+    else:
+        if not deduct_credit(user.id, credits):
+            st.error("خطا در کسر اعتبار.")
         else:
-            if not deduct_credit(user.id, credits):
-                st.error("خطا در کسر اعتبار. لطفاً مجدداً تلاش کنید.")
-            else:
-                st.write("")
-                with st.spinner("در حال محاسبه CPM، تدوین هوک‌های نیتیو و رسم جداول..."):
-                    try:
-                        generation_config = genai.types.GenerationConfig(
-                            temperature=0.9,
-                            max_output_tokens=8192,
-                        )
+            st.write("")
+            with st.spinner("در حال پردازش..."):
+                try:
+                    generation_config = genai.types.GenerationConfig(
+                        temperature=0.9,
+                        max_output_tokens=8192,
+                    )
 
-                        if mode == "📱 تقویم اینستاگرام":
-                            system_instruction = INSTAGRAM_SYSTEM_INSTRUCTION
-                            user_prompt = f"""
+                    if mode == "📱 تقویم اینستاگرام":
+                        system_instruction = INSTAGRAM_SYSTEM_INSTRUCTION
+                        user_prompt = f"""
 داده‌های این کمپین:
 - تاریخ شروع: {current_date}
 - برند: {brand_name}
 - حوزه فعالیت: {niche}
-- مخاطب هدف: {target_audience or "نامشخص - بر اساس حوزه فعالیت حدس بزن"}
+- مخاطب هدف: {target_audience or "بر اساس حوزه فعالیت حدس بزن"}
 - رقبای اصلی: {competitors or "نامشخص"}
 - فالوور فعلی پیج: {current_followers:,}
 - بودجه کل کمپین: {total_budget:,} تومان
-- سبک حضور جلوی دوربین (برای محتوای خود برند، نه اینفلوئنسر): {admin_on_camera}
+- سبک حضور جلوی دوربین: {admin_on_camera}
 - هدف اصلی کمپین: {campaign_goal}
+- فاز کمپین: {campaign_phase}
 
 ### 🎬 جدول 1: تقویم فید و ریلز (7 روز)
 | روز/تاریخ | فرمت | هدف KPI | Hook (کلمه‌به‌کلمه) | ایده تصویربرداری | CTA | UTM | بودجه بوست (تومان) | Reach ارگانیک | Reach پولی |
 
-### 📱 جدول 2: استوری سریالی (همان 3 روز اول جدول بالا × 3 استوری)
+### 📱 جدول 2: استوری سریالی (همان 3 روز اول × 3 استوری)
 | روز/تاریخ | ساعت | سناریو دقیق | استیکر | UTM |
 
 ### 🤝 جدول 3: بریف میکرواینفلوئنسر
-| فالوور رنج | بودجه | دیدلاین | Dos | Don'ts | دیالوگ پیشنهادی (با لحن خود اینفلوئنسر) |
+| فالوور رنج | بودجه | دیدلاین | Dos | Don'ts | دیالوگ پیشنهادی |
 
-### 🚨 جدول 4: ماتریس بحران (حداقل 3 سناریو)
+### 🚨 جدول 4: ماتریس بحران (3 سناریو)
 | نوع بحران | پاسخ عمومی | پاسخ خصوصی | مهلت | اقدام |
 """
-                        else:
-                            system_instruction = SEO_SYSTEM_INSTRUCTION
-                            user_prompt = f"""
-داده‌های این پروژه:
+                    else:
+                        system_instruction = SEO_SYSTEM_INSTRUCTION
+                        user_prompt = f"""
+داده‌های این پروژه سئو:
 - تاریخ: {current_date}
 - برند: {brand_name}
 - حوزه فعالیت: {niche}
+- مخاطب هدف: {target_audience or "بر اساس حوزه فعالیت حدس بزن"}
 - رقبای اصلی: {competitors or "نامشخص"}
+- Domain Authority سایت: {domain_authority}
+- ترافیک ماهانه فعلی: {monthly_traffic:,} بازدید
+- اولویت سئو: {seo_strategy}
+- هدف محتوا: {campaign_goal}
+- CMS: {cms_platform}
 
-### 📑 جدول 1: معماری Topic Cluster
-| نوع صفحه | عنوان H1 | کلمه کلیدی اصلی | LSI | Intent | سختی | لینک داخلی |
+### 📑 جدول 1: معماری Topic Cluster (5 صفحه)
+| نوع صفحه (Pillar/Cluster) | عنوان H1 | کلمه کلیدی اصلی | LSI Keywords | Search Intent | سختی (Low/Med/High) | لینک داخلی به |
 
 ### 📝 جدول 2: Content Gap رقبا
-| رقیب | محتوای موجود | نقطه ضعف | استراتژی ما |
+| رقیب | محتوای موجود رقیب | نقطه ضعف محتوایی | فرصت ما |
 
-### 🔗 جدول 3: برنامه لینک‌سازی
-| نوع لینک | منبع | Anchor Text | اولویت |
+### 🔗 جدول 3: برنامه لینک‌سازی (Link Building)
+| نوع لینک | منبع پیشنهادی | Anchor Text | DoFollow/NoFollow | اولویت |
+
+### 📊 جدول 4: تقویم انتشار محتوا (8 هفته)
+| هفته | عنوان مقاله | کلمه کلیدی | نوع صفحه | هدف این هفته |
 """
 
-                        model = genai.GenerativeModel(
-                            "gemini-2.5-flash",
-                            system_instruction=system_instruction
+                    model = genai.GenerativeModel(
+                        "gemini-2.5-flash",
+                        system_instruction=system_instruction
+                    )
+                    response_stream = model.generate_content(
+                        user_prompt,
+                        stream=True,
+                        generation_config=generation_config
+                    )
+
+                    st.write("")
+                    st.markdown("""
+                        <div style='font-size:0.8rem; font-weight:600;
+                                    color:#6366f1; text-transform:uppercase;
+                                    letter-spacing:1px; margin-bottom:1rem;'>
+                            📊 خروجی آژانسی
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    output_placeholder = st.empty()
+                    full_content = ""
+
+                    for chunk in response_stream:
+                        if chunk.text:
+                            full_content += chunk.text
+                            output_placeholder.markdown(full_content)
+
+                    if not full_content.strip():
+                        raise ValueError("خروجی خالی از مدل دریافت شد.")
+
+                    st.write("")
+                    dl1, dl2, _ = st.columns([1, 1, 2])
+                    with dl1:
+                        st.download_button(
+                            "📥 دانلود Markdown",
+                            full_content,
+                            f"{brand_name}_plan.md",
+                            "text/markdown",
+                            use_container_width=True
                         )
-                        response_stream = model.generate_content(
-                            user_prompt,
-                            stream=True,
-                            generation_config=generation_config
+                    with dl2:
+                        st.download_button(
+                            "📄 دانلود TXT",
+                            full_content,
+                            f"{brand_name}_plan.txt",
+                            "text/plain",
+                            use_container_width=True
                         )
 
-                        st.write("")
-                        st.markdown("""
-                            <div style='font-size:0.8rem; font-weight:600;
-                                        color:#6366f1; text-transform:uppercase;
-                                        letter-spacing:1px; margin-bottom:1rem;'>
-                                📊 خروجی آژانسی
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                        output_placeholder = st.empty()
-                        full_content = ""
-
-                        for chunk in response_stream:
-                            if chunk.text:
-                                full_content += chunk.text
-                                output_placeholder.markdown(full_content)
-
-                        if not full_content.strip():
-                            raise ValueError("خروجی خالی از مدل دریافت شد.")
-
-                        st.write("")
-                        dl1, dl2, _ = st.columns([1, 1, 2])
-                        with dl1:
-                            st.download_button(
-                                "📥 دانلود Markdown",
-                                full_content,
-                                f"{brand_name}_mediaplan.md",
-                                "text/markdown",
-                                use_container_width=True
-                            )
-                        with dl2:
-                            st.download_button(
-                                "📄 دانلود TXT",
-                                full_content,
-                                f"{brand_name}_mediaplan.txt",
-                                "text/plain",
-                                use_container_width=True
-                            )
-
-                    except Exception as e:
-                        logger.error(f"Generation error: {e}")
-                        refund_credit(user.id, credits)
-                        st.error("خطا در ارتباط با سرور. اعتبار شما بازگردانده شد.")
+                except Exception as e:
+                    logger.error(f"Generation error: {e}")
+                    refund_credit(user.id, credits)
+                    st.error("خطا در ارتباط با سرور. اعتبار شما بازگردانده شد.")
