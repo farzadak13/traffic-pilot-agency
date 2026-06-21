@@ -5,8 +5,9 @@ import streamlit as st
 import google.generativeai as genai
 from supabase import create_client, Client
 from datetime import date
+from 
 
-from prompts import (
+from ai.prompts import (
     INSTAGRAM_SYSTEM_INSTRUCTION,
     SEO_SYSTEM_INSTRUCTION,
     build_instagram_prompt,
