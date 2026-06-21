@@ -13,9 +13,9 @@ from supabase import create_client, Client
 from ai.prompts import (
     INSTAGRAM_SYSTEM_INSTRUCTION,
     SEO_SYSTEM_INSTRUCTION,
-    build_instagram_creative_prompt,
+    build_instagram_prompt,
     build_instagram_repair_prompt,
-    build_seo_prompt,
+    build_seo_prompt_main,
     build_seo_repair_prompt,
 )
 
@@ -709,11 +709,10 @@ else:
             admin_on_camera = None
             campaign_phase = None
 
-    st.write("")
-
-    generate_col, _ = st.columns([1, 3])
-    with generate_col:
-        generate = st.button("⚡ تولید پلن", use_container_width=True)
+        st.write("")
+        generate_col, _ = st.columns([1, 3])
+        with generate_col:
+            generate = st.button("⚡ تولید پلن", use_container_width=True)
 
     # =============================================
     # منطق تولید
@@ -745,7 +744,7 @@ else:
                         )
                     else:
                         system_instruction = SEO_SYSTEM_INSTRUCTION
-                        user_prompt = build_seo_prompt(
+                        user_prompt = build_seo_prompt_main(
                             current_date=current_date,
                             brand_name=brand_name,
                             niche=niche,
@@ -807,10 +806,10 @@ else:
                                 "⚠️ خطا در بودجه/ساختار — در حال تصحیح خودکار …"
                             )
 
-                            fix_prompt = build_fix_prompt(
+                            fix_prompt = build_instagram_repair_prompt(
+                                base_prompt=user_prompt,
+                                raw_output=full_content,
                                 errors=validation["errors"],
-                                total_budget=total_budget,
-                                followers=current_followers,
                             )
 
                             gen_config_fix = genai.types.GenerationConfig(
