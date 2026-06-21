@@ -55,60 +55,47 @@ MERGER_SYSTEM_INSTRUCTION = """
 """
 
 
-def build_instagram_prompt(data: dict) -> str:
-    influencer_budget = int(data['total_budget'] * 0.30)
-    boost_budget = data['total_budget'] - influencer_budget
+def build_instagram_prompt(
+    current_date, brand_name, niche, target_audience,
+    competitors, current_followers, total_budget,
+    admin_on_camera, campaign_goal, campaign_phase
+) -> str:
+    influencer_budget = int(total_budget * 0.30)
+    boost_budget = total_budget - influencer_budget
+    
+    # تقسیم نمونه برای راهنمایی مدل
+    sample_day1 = int(boost_budget * 0.25)
+    sample_day2 = int(boost_budget * 0.15)
+    sample_day3 = int(boost_budget * 0.20)
+    sample_day4 = int(boost_budget * 0.12)
+    sample_day5 = int(boost_budget * 0.10)
+    sample_day6 = int(boost_budget * 0.08)
+    sample_day7 = boost_budget - (sample_day1+sample_day2+sample_day3+sample_day4+sample_day5+sample_day6)
 
     return f"""
-داده‌های این کمپین:
-- تاریخ شروع: {data['current_date']}
-- برند: {data['brand_name']}
-- حوزه فعالیت: {data['niche']}
-- مخاطب هدف: {data.get('target_audience') or 'بر اساس حوزه حدس بزن'}
-- رقبای اصلی: {data.get('competitors') or 'نامشخص'}
-- فالوور فعلی پیج: {data['current_followers']:,}
-- بودجه کل کمپین: {data['total_budget']:,} تومان
-- سبک حضور جلوی دوربین: {data['admin_on_camera']}
-- هدف اصلی کمپین: {data['campaign_goal']}
-- فاز کمپین: {data['campaign_phase']}
+...
+قوانین اجباری بودجه:
 
-═══════════════════════════════════
-قوانین اجباری بودجه (رعایت کن):
-═══════════════════════════════════
+بودجه کل: {total_budget:,} تومان
+سهم اینفلوئنسر (جدول 3): حتماً و دقیقاً {influencer_budget:,} تومان
+سهم بوست پست‌ها (جدول 1): حتماً و دقیقاً {boost_budget:,} تومان
 
-بودجه کل: {data['total_budget']:,} تومان
-سهم اینفلوئنسر (جدول 3): {influencer_budget:,} تومان (۳۰٪)
-سهم بوست پست‌ها (جدول 1): {boost_budget:,} تومان (۷۰٪)
+نمونه تقسیم صحیح بودجه بوست (باید دقیقاً شبیه این باشد):
+- روز 1 ریلز: {sample_day1:,} تومان
+- روز 2 کاروسل: {sample_day2:,} تومان
+- روز 3 ریلز: {sample_day3:,} تومان
+- روز 4 تک‌عکس: {sample_day4:,} تومان
+- روز 5 کاروسل: {sample_day5:,} تومان
+- روز 6 تک‌عکس: {sample_day6:,} تومان
+- روز 7 ریلز: {sample_day7:,} تومان
+جمع: {boost_budget:,} تومان
 
-قانون ۱: ستون "بودجه بوست" برای تمام ۷ ردیف جدول ۱ باید عدد صریح داشته باشد. هیچ سلولی خالی نباشد.
-قانون ۲: جمع ستون "بودجه بوست" در جدول ۱ باید دقیقاً {boost_budget:,} تومان باشد.
-قانون ۳: بودجه اینفلوئنسر در جدول ۳ باید دقیقاً {influencer_budget:,} تومان باشد.
-قانون ۴: بودجه روزهای ریلز باید بیشتر از پست معمولی باشد (ریلز > کاروسل > تک‌عکس).
-قانون ۵: هیچ دو روزی بودجه یکسان نداشته باشند.
-قانون ۶: در آخرین سطر جدول ۱، یک ردیف "جمع کل" اضافه کن که جمع ستون بودجه بوست را نشان دهد.
-
-═══════════════════════════════════
-قوانین Reach (رعایت کن):
-═══════════════════════════════════
-
-قانون ۷: Reach ارگانیک ریلز = حداقل ۳ برابر پست تک‌عکس همان هفته.
-قانون ۸: Reach ارگانیک کاروسل = حدود ۱.۵ برابر پست تک‌عکس.
-قانون ۹: Reach پولی = (بودجه بوست آن روز ÷ ۳۰۰۰۰) × ۱۰۰۰ — این فرمول را دقیق اجرا کن.
-قانون ۱۰: هیچ دو روزی Reach ارگانیک یکسان نداشته باشند.
-
-═══════════════════════════════════
-
-### 🎬 جدول 1: تقویم فید و ریلز (7 روز)
-| روز/تاریخ | فرمت | هدف KPI | Hook (کلمه‌به‌کلمه) | ایده تصویربرداری | CTA | UTM | بودجه بوست (تومان) | Reach ارگانیک | Reach پولی |
-
-### 📱 جدول 2: استوری سریالی (همان 3 روز اول × 3 استوری)
-| روز/تاریخ | ساعت | سناریو دقیق | استیکر | UTM |
-
-### 🤝 جدول 3: بریف میکرواینفلوئنسر
-| فالوور رنج | بودجه | دیدلاین | Dos | Don'ts | دیالوگ پیشنهادی |
-
-### 🚨 جدول 4: ماتریس بحران
-| نوع بحران | پاسخ عمومی | پاسخ خصوصی | مهلت | اقدام |
+قوانین مهم:
+1. ستون "بودجه بوست" برای هر ۷ ردیف باید عدد داشته باشد. هیچ‌کدام نباید خالی باشد.
+2. در انتهای جدول 1 یک ردیف "| جمع کل | - | - | - | - | - | - | {boost_budget:,} | - | - |" اضافه کن.
+3. در جدول 3، سلول بودجه باید دقیقاً این عدد باشد: {influencer_budget:,}
+4. هیچ دو روزی بودجه یکسان نداشته باشند.
+...
 """
 
 
