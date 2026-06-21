@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Callable
 import streamlit as st
 import google.generativeai as genai
 from supabase import create_client, Client
+github_token = st.secrets.get("GITHUB_TOKEN")
 
 from ai.prompts import (
     INSTAGRAM_SYSTEM_INSTRUCTION,
