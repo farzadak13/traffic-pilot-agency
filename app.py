@@ -2,7 +2,6 @@ import os
 import logging
 import streamlit as st
 import google.generativeai as genai
-from core.validators import validate_budget, validate_reach
 from supabase import create_client, Client
 from datetime import date
 
@@ -25,7 +24,7 @@ st.set_page_config(
 )
 
 # =============================================
-# CSS حرفه‌ای - سطح پلتفرم‌های جهانی
+# CSS
 # =============================================
 st.markdown("""
 <style>
@@ -308,7 +307,6 @@ tbody td {
     line-height: 1.6 !important;
 }
 
-/* ── Selectbox dropdown: کنتراست اصلاح‌شده ── */
 ul[data-testid="stSelectboxVirtualDropdown"] {
     background: #1e1e35 !important;
     border: 1px solid rgba(99,102,241,0.3) !important;
@@ -370,71 +368,31 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
     font-weight: 700 !important;
 }
 
-/* ══════════════════════════════════════════
-   ریسپانسیو موبایل
-   ══════════════════════════════════════════ */
 @media (max-width: 768px) {
-    .main .block-container {
-        padding: 1rem 1rem !important;
-    }
-
-    h1 {
-        font-size: 1.5rem !important;
-    }
-
-    h2, h3 {
-        font-size: 1.1rem !important;
-    }
-
-    /* ستون‌های st.columns زیر هم بچینه */
-    div[data-testid="stHorizontalBlock"] {
-        flex-direction: column !important;
-        gap: 0.5rem !important;
-    }
-
+    .main .block-container { padding: 1rem 1rem !important; }
+    h1 { font-size: 1.5rem !important; }
+    h2, h3 { font-size: 1.1rem !important; }
+    div[data-testid="stHorizontalBlock"] { flex-direction: column !important; gap: 0.5rem !important; }
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        width: 100% !important;
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
+        width: 100% !important; flex: 1 1 100% !important; min-width: 100% !important;
     }
-
-    div[data-testid="stRadio"] > div {
-        flex-direction: column !important;
+    div[data-testid="stRadio"] > div { flex-direction: column !important; }
+    .stButton > button, .stDownloadButton > button {
+        font-size: 0.85rem !important; padding: 0.65rem 1rem !important;
     }
-
-    .stButton > button,
-    .stDownloadButton > button {
-        font-size: 0.85rem !important;
-        padding: 0.65rem 1rem !important;
-    }
-
-    /* جداول مارک‌داون با اسکرول افقی به‌جای شکستن چیدمان */
     table {
-        display: block !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        font-size: 0.72rem !important;
+        display: block !important; overflow-x: auto !important;
+        white-space: nowrap !important; font-size: 0.72rem !important;
         -webkit-overflow-scrolling: touch !important;
     }
-
-    thead th, tbody td {
-        padding: 8px 10px !important;
-    }
+    thead th, tbody td { padding: 8px 10px !important; }
 }
 
 @media (max-width: 480px) {
-    .main .block-container {
-        padding: 0.75rem 0.6rem !important;
-    }
-
-    h1 {
-        font-size: 1.25rem !important;
-    }
-
-    .stButton > button,
-    .stDownloadButton > button {
-        font-size: 0.8rem !important;
-        padding: 0.6rem 0.8rem !important;
+    .main .block-container { padding: 0.75rem 0.6rem !important; }
+    h1 { font-size: 1.25rem !important; }
+    .stButton > button, .stDownloadButton > button {
+        font-size: 0.8rem !important; padding: 0.6rem 0.8rem !important;
     }
 }
 </style>
@@ -455,12 +413,19 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 supabase_admin: Client = create_client(SUPABASE_URL, SERVICE_ROLE_KEY) if SERVICE_ROLE_KEY else supabase
 genai.configure(api_key=GEMINI_API_KEY)
 
+# --- import validators بعد از اتصال به سرویس‌ها ---
+try:
+    from core.validators import validate_budget, validate_reach
+    VALIDATORS_AVAILABLE = True
+except ImportError:
+    logger.warning("core/validators.py پیدا نشد. اعتبارسنجی غیرفعال است.")
+    VALIDATORS_AVAILABLE = False
+
 if 'user' not in st.session_state:
     st.session_state.user = None
 
 # =============================================
-# PERSONA + قوانین کپی‌رایتینگ (System Instructions)
-# جدا از دیتای کاربر تا قابل نگهداری و دیباگ‌پذیر باشه
+# System Instructions
 # =============================================
 
 INSTAGRAM_SYSTEM_INSTRUCTION = """
@@ -471,75 +436,54 @@ INSTAGRAM_SYSTEM_INSTRUCTION = """
 ### قانون ۱ — ممنوعیت لحن تبلیغاتی کلیشه‌ای
 استفاده از این کلمات و الگوها مطلقاً ممنوع است: "بی‌نظیر"، "فوق‌العاده"، "عاشقانه"،
 "درخشش"، "یک بیانیه است"، "تجربه‌ای لوکس"، "کیفیت بی‌نظیر"، یا هر جمله‌ای که شبیه گوینده
-تیزر تلویزیونی باشد. اگر جمله‌ای را با صدای یک اسپیکر تبلیغاتی رسمی می‌توان خواند، آن جمله رد است.
+تیزر تلویزیونی باشد.
 
 ### قانون ۲ — قلاب (Hook) یعنی شکستن باور یا لمس درد، نه توصیف محصول
 هر Hook باید روی یکی از این‌ها بنا شود:
-- شکستن یک باور غلط رایج درباره آن محصول/حوزه
+- شکستن یک باور غلط رایج
 - یک درد یا مشکل ملموس روزمره مخاطب
-- یک سوال چالشی که مخاطب را وادار به فکر کردن کند
+- یک سوال چالشی
 - یک فکت یا آمار غافلگیرکننده
 
-مثال غلط (شعاری، رد می‌شود): "نور خورشید رو عاشقانه ببینید!"
-مثال درست (نیتیو، لمس‌کننده درد): "اگه موقع رانندگی هنوز چشمت جمع میشه، عینکت فقط یه تیکه
-پلاستیک مشکیه، نه یه عینک آفتابی واقعی!"
-مثال غلط: "فقط یک عینک نیست، یک بیانیه است."
-مثال درست: "تا حالا دقت کردی چرا بعضیا با یه عینک ساده هم جذاب به نظر میرسن و بعضیا نه؟ ربطی به
-قیمت نداره..."
-از این الگو برای ساخت Hookهای هر روز استفاده کن، نه کپی این جملات.
-
 ### قانون ۳ — لحن محاوره‌ای و صمیمی
-جملات باید طوری نوشته شوند که انگار یک آدم واقعی پشت صفحه‌کلید با مخاطب حرف می‌زند،
-با گرامر محاوره‌ای فارسی (نه رسمی/کتابی) و بدون اغراق.
+جملات باید طوری نوشته شوند که انگار یک آدم واقعی با مخاطب حرف می‌زند.
 
 ### قانون ۴ — CTA مدرن و اتوماسیون‌محور
-حداقل نیمی از CTAها باید از تکنیک‌های تعامل/اتوماسیون استفاده کنند، مثل:
-"کلمه [X] رو کامنت کن تا لینک/کد رو برات دایرکت کنم" یا "این پست رو سیو کن، فردا بهش نیاز داری".
-از تکرار عین یک CTA در دو روز مختلف خودداری کن. صرفاً "لینک در بایو" یا "همین حالا بخرید"
-به‌تنهایی برای بیشتر از یک پست در هفته مجاز نیست.
+حداقل نیمی از CTAها باید از تکنیک‌های تعامل/اتوماسیون استفاده کنند.
 
-### قانون ۵ — منطق محاسبه داده (ممنوعیت توهم آماری)
-هیچ دو روزی — حتی با فرمت یکسان — نباید عدد Reach ارگانیک یا Reach پولی کاملاً یکسان داشته باشند.
-قواعد محاسبه:
-- ریلز باید حداقل ۳ برابر Reach ارگانیک یک پست فید معمولی داشته باشد (الگوریتم اینستاگرام به ریلز
-  اولویت می‌دهد).
-- کاروسل حدوداً ۱.۵ برابر یک پست تک‌عکسی است.
-- روی هر عدد، بر اساس قدرت Hook همان روز، نوسان ۱۰ تا ۲۰ درصدی اعمال کن تا داده طبیعی به نظر برسد.
-- Reach پولی را از روی بودجه بوست و CPM تقریبی بازار ایران (≈۳۰,۰۰۰ تومان به ازای هر ۱۰۰۰ بازدید)
-  محاسبه کن، نه یک عدد ثابت.
-- بودجه بوست هر پست باید سهم متفاوتی از بودجه کل کمپین باشد، متناسب با اهمیت آن پست در قیف فروش.
+### قانون ۵ — منطق محاسبه داده
+- ریلز: حداقل ۳ برابر Reach ارگانیک پست معمولی
+- کاروسل: حدود ۱.۵ برابر پست تک‌عکسی
+- Reach پولی = (بودجه بوست ÷ ۳۰,۰۰۰) × ۱,۰۰۰
+- هیچ دو روزی Reach یکسان نداشته باشند
 
 ### قانون ۶ — بریف اینفلوئنسر
-اینفلوئنسر باید از چهره، صدا و اعتبار شخصی خودش به‌عنوان Social Proof استفاده کند.
-تحت هیچ شرایطی از او نخواه که چهره‌اش را پنهان یا سانسور کند — این دقیقاً نقطه قوتی است که
-بابتش به او پول می‌دهیم. دیالوگ پیشنهادی باید به لحن طبیعی خود اینفلوئنسر نزدیک باشد، نه یک
-متن تبلیغاتی خشک که انگار از روی کاغذ خوانده می‌شود.
+دیالوگ پیشنهادی باید طبیعی و نیتیو باشد.
 
 ### قانون ۷ — احترام حرفه‌ای به رقبا
-هرگز رقبا را مستقیماً تخریب، متهم یا با اسم بد جلوه نده. فقط روی نقاط تمایز برند خودمان تمرکز کن.
+هرگز رقبا را تخریب نکن.
 
 ### قانون ۸ — پیوستگی تاریخ بین جداول
-جدول استوری‌های سریالی باید دقیقاً همان ۳ روز اول جدول تقویم اصلی را پوشش دهد (همان تاریخ‌ها،
-نه روزهای بعد از پایان هفته اول).
+استوری‌ها باید دقیقاً همان ۳ روز اول جدول تقویم را پوشش دهند.
 
 ### قانون ۹ — فرمت خروجی
-اولین کاراکتر خروجی باید "###" باشد. هیچ مقدمه، سلام، جمع‌بندی یا توضیح اضافه قبل یا بعد از
-جداول مجاز نیست. فقط جداول مارک‌داون.
+اولین کاراکتر خروجی باید "###" باشد. فقط جداول مارک‌داون.
 """
 
 SEO_SYSTEM_INSTRUCTION = """
 نقش تو: یک Senior SEO Content Strategist ایرانی هستی که بر اساس تکنیک Pillar-Cluster کار می‌کند.
 
 قوانین:
-- از کلمات کلیدی و عناوین کلیشه‌ای و عمومی پرهیز کن؛ عناوین باید بر اساس Search Intent واقعی
-  کاربر ایرانی نوشته شوند.
-- هرگز رقبا را تخریب نکن؛ فقط نقاط ضعف محتوایی آن‌ها را به‌عنوان فرصت محتوایی برای ما تحلیل کن.
-- سختی کلمه کلیدی (Low/Med/High) را با توجه به Domain Authority سایت کاربر واقع‌بینانه تخمین بزن؛
-  برای DA پایین، کلمات با سختی بالا را در اولویت اول قرار نده.
-- اولین کاراکتر خروجی باید "###" باشد. بدون مقدمه یا توضیح اضافه، فقط جداول مارک‌داون.
+- از کلمات کلیدی و عناوین کلیشه‌ای پرهیز کن.
+- هرگز رقبا را تخریب نکن.
+- سختی کلمه کلیدی را با توجه به DA سایت واقع‌بینانه تخمین بزن.
+- اولین کاراکتر خروجی باید "###" باشد. فقط جداول مارک‌داون.
 """
 
-# ── Helper Functions ──
+# =============================================
+# Helper Functions
+# =============================================
+
 def get_user_profile(user_id: str) -> dict:
     try:
         res = supabase_admin.table("user_profiles")\
@@ -552,7 +496,6 @@ def get_user_profile(user_id: str) -> dict:
         return {"credits": 0}
 
 def deduct_credit(user_id: str, current_credits: int) -> bool:
-    """کسر اعتبار قبل از تولید محتوا (در صورت خطا، اعتبار برمی‌گردد)"""
     try:
         supabase_admin.table("user_profiles")\
             .update({"credits": current_credits - 1})\
@@ -572,9 +515,100 @@ def refund_credit(user_id: str, credits_before: int):
     except Exception as e:
         logger.error(f"Credit refund error: {e}")
 
-# ==========================================
+def build_instagram_prompt(
+    current_date, brand_name, niche, target_audience,
+    competitors, current_followers, total_budget,
+    admin_on_camera, campaign_goal, campaign_phase
+) -> str:
+    influencer_budget = int(total_budget * 0.30)
+    boost_budget = total_budget - influencer_budget
+
+    return f"""
+داده‌های این کمپین:
+- تاریخ شروع: {current_date}
+- برند: {brand_name}
+- حوزه فعالیت: {niche}
+- مخاطب هدف: {target_audience or "بر اساس حوزه فعالیت حدس بزن"}
+- رقبای اصلی: {competitors or "نامشخص"}
+- فالوور فعلی پیج: {current_followers:,}
+- بودجه کل کمپین: {total_budget:,} تومان
+- سبک حضور جلوی دوربین: {admin_on_camera}
+- هدف اصلی کمپین: {campaign_goal}
+- فاز کمپین: {campaign_phase}
+
+═══════════════════════════════════
+قوانین اجباری بودجه (باید دقیقاً رعایت شود):
+═══════════════════════════════════
+
+بودجه کل: {total_budget:,} تومان
+سهم اینفلوئنسر (جدول 3): {influencer_budget:,} تومان (۳۰٪)
+سهم بوست پست‌ها (جدول 1): {boost_budget:,} تومان (۷۰٪)
+
+قانون ۱: ستون "بودجه بوست" برای تمام ۷ ردیف جدول ۱ باید عدد صریح داشته باشد. هیچ سلولی خالی نباشد.
+قانون ۲: جمع ستون "بودجه بوست" در جدول ۱ باید دقیقاً {boost_budget:,} تومان باشد.
+قانون ۳: بودجه اینفلوئنسر در جدول ۳ باید دقیقاً {influencer_budget:,} تومان باشد.
+قانون ۴: بودجه روزهای ریلز باید بیشتر از پست معمولی باشد (ریلز > کاروسل > تک‌عکس).
+قانون ۵: هیچ دو روزی بودجه یکسان نداشته باشند.
+قانون ۶: در آخرین سطر جدول ۱، یک ردیف "جمع کل" اضافه کن که جمع ستون بودجه بوست را نشان دهد.
+
+═══════════════════════════════════
+قوانین Reach:
+═══════════════════════════════════
+
+قانون ۷: Reach ارگانیک ریلز = حداقل ۳ برابر پست تک‌عکس همان هفته.
+قانون ۸: Reach ارگانیک کاروسل = حدود ۱.۵ برابر پست تک‌عکس.
+قانون ۹: Reach پولی = (بودجه بوست آن روز ÷ ۳۰,۰۰۰) × ۱,۰۰۰
+قانون ۱۰: هیچ دو روزی Reach ارگانیک یکسان نداشته باشند.
+
+═══════════════════════════════════
+
+### 🎬 جدول 1: تقویم فید و ریلز (7 روز)
+| روز/تاریخ | فرمت | هدف KPI | Hook (کلمه‌به‌کلمه) | ایده تصویربرداری | CTA | UTM | بودجه بوست (تومان) | Reach ارگانیک | Reach پولی |
+
+### 📱 جدول 2: استوری سریالی (همان 3 روز اول × 3 استوری)
+| روز/تاریخ | ساعت | سناریو دقیق | استیکر | UTM |
+
+### 🤝 جدول 3: بریف میکرواینفلوئنسر
+| فالوور رنج | بودجه | دیدلاین | Dos | Don'ts | دیالوگ پیشنهادی |
+
+### 🚨 جدول 4: ماتریس بحران (3 سناریو)
+| نوع بحران | پاسخ عمومی | پاسخ خصوصی | مهلت | اقدام |
+"""
+
+def build_seo_prompt(
+    current_date, brand_name, niche, target_audience,
+    competitors, domain_authority, monthly_traffic,
+    seo_strategy, campaign_goal, cms_platform
+) -> str:
+    return f"""
+داده‌های این پروژه سئو:
+- تاریخ: {current_date}
+- برند: {brand_name}
+- حوزه فعالیت: {niche}
+- مخاطب هدف: {target_audience or "بر اساس حوزه فعالیت حدس بزن"}
+- رقبای اصلی: {competitors or "نامشخص"}
+- Domain Authority سایت: {domain_authority}
+- ترافیک ماهانه فعلی: {monthly_traffic:,} بازدید
+- اولویت سئو: {seo_strategy}
+- هدف محتوا: {campaign_goal}
+- CMS: {cms_platform}
+
+### 📑 جدول 1: معماری Topic Cluster (5 صفحه)
+| نوع صفحه (Pillar/Cluster) | عنوان H1 | کلمه کلیدی اصلی | LSI Keywords | Search Intent | سختی (Low/Med/High) | لینک داخلی به |
+
+### 📝 جدول 2: Content Gap رقبا
+| رقیب | محتوای موجود رقیب | نقطه ضعف محتوایی | فرصت ما |
+
+### 🔗 جدول 3: برنامه لینک‌سازی (Link Building)
+| نوع لینک | منبع پیشنهادی | Anchor Text | DoFollow/NoFollow | اولویت |
+
+### 📊 جدول 4: تقویم انتشار محتوا (8 هفته)
+| هفته | عنوان مقاله | کلمه کلیدی | نوع صفحه | هدف این هفته |
+"""
+
+# =============================================
 # صفحه لاگین
-# ==========================================
+# =============================================
 if not st.session_state.user:
     _, col, _ = st.columns([1, 1.5, 1])
     with col:
@@ -624,11 +658,9 @@ if not st.session_state.user:
                         logger.error(f"Signup error: {e}")
                         st.error("خطا در ثبت‌نام. ایمیل تکراری یا رمز کوتاه است.")
 
-# ==========================================
+# =============================================
 # داشبورد اصلی
-# همه‌ی محتوای زیر، عمداً داخل همین else نگه داشته شده
-# تا قبل از لاگین هیچ‌چیزی از فرم/داشبورد رندر نشود.
-# ==========================================
+# =============================================
 else:
     user = st.session_state.user
     profile = get_user_profile(user.id)
@@ -675,8 +707,7 @@ else:
                         justify-content:center; font-size:1rem;
                     '>👤</div>
                     <div>
-                        <div style='font-size:0.85rem; font-weight:600;
-                                    color:#e2e8f0;'>
+                        <div style='font-size:0.85rem; font-weight:600; color:#e2e8f0;'>
                             {user.email.split('@')[0]}
                         </div>
                         <div style='font-size:0.72rem; color:#475569;'>
@@ -686,34 +717,30 @@ else:
                 </div>
                 <div style='
                     background: rgba(255,255,255,0.03);
-                    border-radius: 10px;
-                    padding: 12px;
-                    display: flex;
-                    justify-content: space-between;
+                    border-radius: 10px; padding: 12px;
+                    display: flex; justify-content: space-between;
                     align-items: center;
                 '>
                     <div>
-                        <div style='font-size:0.72rem; color:#475569;
-                                    margin-bottom:2px;'>اعتبار باقی‌مانده</div>
+                        <div style='font-size:0.72rem; color:#475569; margin-bottom:2px;'>
+                            اعتبار باقی‌مانده
+                        </div>
                         <div style='font-size:1.8rem; font-weight:800;
-                                    color:{credit_color};
-                                    line-height:1;'>{credits}</div>
+                                    color:{credit_color}; line-height:1;'>
+                            {credits}
+                        </div>
                     </div>
                     <div style='
                         background: rgba(99,102,241,0.1);
                         border: 1px solid rgba(99,102,241,0.2);
-                        border-radius: 8px;
-                        padding: 6px 12px;
-                        font-size: 0.72rem;
-                        color: #a5b4fc;
-                        font-weight: 500;
+                        border-radius: 8px; padding: 6px 12px;
+                        font-size: 0.72rem; color: #a5b4fc; font-weight: 500;
                     '>استراتژیست</div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-        max_credits = 10
-        st.progress(min(credits / max_credits, 1.0))
+        st.progress(min(credits / 10, 1.0))
         st.write("")
 
         if st.button("خروج از سیستم", use_container_width=True):
@@ -738,10 +765,8 @@ else:
     )
     st.write("")
 
-    # ── Form - Dynamic بر اساس mode ──
+    # ── فرم ──
     with st.container():
-
-        # ── بخش مشترک هر دو mode ──
         st.markdown("""
             <div style='font-size:0.8rem; font-weight:600; color:#475569;
                         text-transform:uppercase; letter-spacing:1px;
@@ -763,11 +788,7 @@ else:
 
         st.write("")
 
-        # ══════════════════════════════════════
-        # بخش اختصاصی اینستاگرام
-        # ══════════════════════════════════════
         if mode == "📱 تقویم اینستاگرام":
-
             st.markdown("""
                 <div style='font-size:0.8rem; font-weight:600; color:#475569;
                             text-transform:uppercase; letter-spacing:1px;
@@ -779,19 +800,12 @@ else:
             c4, c5, c6 = st.columns(3)
             with c4:
                 current_followers = st.number_input(
-                    "فالوور فعلی پیج",
-                    min_value=0,
-                    value=1500,
-                    step=100,
-                    help="تعداد فالوور فعلی برای محاسبه Reach ارگانیک"
+                    "فالوور فعلی پیج", min_value=0, value=1500, step=100
                 )
             with c5:
                 total_budget = st.number_input(
-                    "بودجه کل کمپین (تومان)",
-                    min_value=0,
-                    value=10_000_000,
-                    step=1_000_000,
-                    help="شامل بوست + اینفلوئنسر + تولید محتوا"
+                    "بودجه کل کمپین (تومان)", min_value=0,
+                    value=10_000_000, step=1_000_000
                 )
             with c6:
                 competitors = st.text_input(
@@ -837,17 +851,12 @@ else:
                     ]
                 )
 
-            # مقادیر پیش‌فرض برای SEO (استفاده نمیشه ولی تعریف میشه)
             domain_authority = None
             seo_strategy = None
             monthly_traffic = None
             cms_platform = None
 
-        # ══════════════════════════════════════
-        # بخش اختصاصی SEO
-        # ══════════════════════════════════════
         else:
-
             st.markdown("""
                 <div style='font-size:0.8rem; font-weight:600; color:#475569;
                             text-transform:uppercase; letter-spacing:1px;
@@ -859,20 +868,11 @@ else:
             c4, c5, c6 = st.columns(3)
             with c4:
                 domain_authority = st.number_input(
-                    "Domain Authority سایت",
-                    min_value=0,
-                    max_value=100,
-                    value=15,
-                    step=1,
-                    help="DA سایت از ابزارهایی مثل Moz یا Ahrefs"
+                    "Domain Authority سایت", min_value=0, max_value=100, value=15
                 )
             with c5:
                 monthly_traffic = st.number_input(
-                    "ترافیک ماهانه فعلی (بازدید)",
-                    min_value=0,
-                    value=500,
-                    step=100,
-                    help="از Google Search Console یا ابزار مشابه"
+                    "ترافیک ماهانه فعلی (بازدید)", min_value=0, value=500, step=100
                 )
             with c6:
                 competitors = st.text_input(
@@ -918,7 +918,6 @@ else:
                     ]
                 )
 
-            # مقادیر پیش‌فرض برای اینستاگرام (استفاده نمیشه)
             current_followers = None
             total_budget = None
             admin_on_camera = None
@@ -926,11 +925,13 @@ else:
 
     st.write("")
 
-    # ── Generate Button ──
     generate_col, _ = st.columns([1, 3])
     with generate_col:
         generate = st.button("⚡ تولید پلن", use_container_width=True)
 
+    # =============================================
+    # منطق تولید
+    # =============================================
     if generate:
         if credits <= 0:
             st.error("اعتبار شما به پایان رسیده است.")
@@ -941,118 +942,152 @@ else:
                 st.error("خطا در کسر اعتبار.")
             else:
                 st.write("")
-                with st.spinner("در حال پردازش..."):
-                    try:
-                        generation_config = genai.types.GenerationConfig(
-                            temperature=0.9,
-                            max_output_tokens=8192,
+                try:
+                    generation_config = genai.types.GenerationConfig(
+                        temperature=0.9,
+                        max_output_tokens=8192,
+                    )
+
+                    if mode == "📱 تقویم اینستاگرام":
+                        system_instruction = INSTAGRAM_SYSTEM_INSTRUCTION
+                        user_prompt = build_instagram_prompt(
+                            current_date, brand_name, niche, target_audience,
+                            competitors, current_followers, total_budget,
+                            admin_on_camera, campaign_goal, campaign_phase
+                        )
+                    else:
+                        system_instruction = SEO_SYSTEM_INSTRUCTION
+                        user_prompt = build_seo_prompt(
+                            current_date, brand_name, niche, target_audience,
+                            competitors, domain_authority, monthly_traffic,
+                            seo_strategy, campaign_goal, cms_platform
                         )
 
-                        if mode == "📱 تقویم اینستاگرام":
-                            system_instruction = INSTAGRAM_SYSTEM_INSTRUCTION
-                            user_prompt = f"""
-داده‌های این کمپین:
-- تاریخ شروع: {current_date}
-- برند: {brand_name}
-- حوزه فعالیت: {niche}
-- مخاطب هدف: {target_audience or "بر اساس حوزه فعالیت حدس بزن"}
-- رقبای اصلی: {competitors or "نامشخص"}
-- فالوور فعلی پیج: {current_followers:,}
-- بودجه کل کمپین: {total_budget:,} تومان
-- سبک حضور جلوی دوربین: {admin_on_camera}
-- هدف اصلی کمپین: {campaign_goal}
-- فاز کمپین: {campaign_phase}
+                    model = genai.GenerativeModel(
+                        "gemini-2.5-flash",
+                        system_instruction=system_instruction
+                    )
 
-### 🎬 جدول 1: تقویم فید و ریلز (7 روز)
-| روز/تاریخ | فرمت | هدف KPI | Hook (کلمه‌به‌کلمه) | ایده تصویربرداری | CTA | UTM | بودجه بوست (تومان) | Reach ارگانیک | Reach پولی |
+                    st.markdown("""
+                        <div style='font-size:0.8rem; font-weight:600;
+                                    color:#6366f1; text-transform:uppercase;
+                                    letter-spacing:1px; margin-bottom:1rem;'>
+                            📊 خروجی آژانسی
+                        </div>
+                    """, unsafe_allow_html=True)
 
-### 📱 جدول 2: استوری سریالی (همان 3 روز اول × 3 استوری)
-| روز/تاریخ | ساعت | سناریو دقیق | استیکر | UTM |
+                    output_placeholder = st.empty()
+                    full_content = ""
 
-### 🤝 جدول 3: بریف میکرواینفلوئنسر
-| فالوور رنج | بودجه | دیدلاین | Dos | Don'ts | دیالوگ پیشنهادی |
-
-### 🚨 جدول 4: ماتریس بحران (3 سناریو)
-| نوع بحران | پاسخ عمومی | پاسخ خصوصی | مهلت | اقدام |
-"""
-                        else:
-                            system_instruction = SEO_SYSTEM_INSTRUCTION
-                            user_prompt = f"""
-داده‌های این پروژه سئو:
-- تاریخ: {current_date}
-- برند: {brand_name}
-- حوزه فعالیت: {niche}
-- مخاطب هدف: {target_audience or "بر اساس حوزه فعالیت حدس بزن"}
-- رقبای اصلی: {competitors or "نامشخص"}
-- Domain Authority سایت: {domain_authority}
-- ترافیک ماهانه فعلی: {monthly_traffic:,} بازدید
-- اولویت سئو: {seo_strategy}
-- هدف محتوا: {campaign_goal}
-- CMS: {cms_platform}
-
-### 📑 جدول 1: معماری Topic Cluster (5 صفحه)
-| نوع صفحه (Pillar/Cluster) | عنوان H1 | کلمه کلیدی اصلی | LSI Keywords | Search Intent | سختی (Low/Med/High) | لینک داخلی به |
-
-### 📝 جدول 2: Content Gap رقبا
-| رقیب | محتوای موجود رقیب | نقطه ضعف محتوایی | فرصت ما |
-
-### 🔗 جدول 3: برنامه لینک‌سازی (Link Building)
-| نوع لینک | منبع پیشنهادی | Anchor Text | DoFollow/NoFollow | اولویت |
-
-### 📊 جدول 4: تقویم انتشار محتوا (8 هفته)
-| هفته | عنوان مقاله | کلمه کلیدی | نوع صفحه | هدف این هفته |
-"""
-
-                        model = genai.GenerativeModel(
-                            "gemini-2.5-flash",
-                            system_instruction=system_instruction
-                        )
+                    with st.spinner("در حال پردازش..."):
                         response_stream = model.generate_content(
                             user_prompt,
                             stream=True,
                             generation_config=generation_config
                         )
-
-                        st.write("")
-                        st.markdown("""
-                            <div style='font-size:0.8rem; font-weight:600;
-                                        color:#6366f1; text-transform:uppercase;
-                                        letter-spacing:1px; margin-bottom:1rem;'>
-                                📊 خروجی آژانسی
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                        output_placeholder = st.empty()
-                        full_content = ""
-
                         for chunk in response_stream:
                             if chunk.text:
                                 full_content += chunk.text
                                 output_placeholder.markdown(full_content)
 
-                        if not full_content.strip():
-                            raise ValueError("خروجی خالی از مدل دریافت شد.")
+                    if not full_content.strip():
+                        raise ValueError("خروجی خالی از مدل دریافت شد.")
 
-                        st.write("")
-                        dl1, dl2, _ = st.columns([1, 1, 2])
-                        with dl1:
-                            st.download_button(
-                                "📥 دانلود Markdown",
-                                full_content,
-                                f"{brand_name}_plan.md",
-                                "text/markdown",
-                                use_container_width=True
-                            )
-                        with dl2:
-                            st.download_button(
-                                "📄 دانلود TXT",
-                                full_content,
-                                f"{brand_name}_plan.txt",
-                                "text/plain",
-                                use_container_width=True
-                            )
+                    # =============================================
+                    # اعتبارسنجی بودجه و Reach (فقط اینستاگرام)
+                    # =============================================
+                    if mode == "📱 تقویم اینستاگرام" and VALIDATORS_AVAILABLE:
+                        budget_check = validate_budget(full_content, total_budget)
+                        reach_check = validate_reach(full_content)
 
-                    except Exception as e:
-                        logger.error(f"Generation error: {e}")
-                        refund_credit(user.id, credits)
-                        st.error("خطا در ارتباط با سرور. اعتبار شما بازگردانده شد.")
+                        all_errors = budget_check["errors"]
+                        all_warnings = budget_check["warnings"] + reach_check["warnings"]
+
+                        if all_errors or all_warnings:
+                            with st.expander(
+                                "🔍 گزارش اعتبارسنجی بودجه و Reach",
+                                expanded=True
+                            ):
+                                s = budget_check["summary"]
+                                if s:
+                                    st.markdown("**📊 خلاصه بودجه:**")
+                                    col_a, col_b, col_c = st.columns(3)
+
+                                    with col_a:
+                                        st.metric(
+                                            "بودجه کل",
+                                            f"{s['total_budget']:,}"
+                                        )
+                                    with col_b:
+                                        delta_boost = (
+                                            s['actual_boost'] - s['expected_boost']
+                                        )
+                                        st.metric(
+                                            "جمع بوست پست‌ها",
+                                            f"{s['actual_boost']:,}",
+                                            delta=f"{delta_boost:+,}",
+                                            delta_color="inverse"
+                                        )
+                                    with col_c:
+                                        inf_val = s['actual_influencer'] or 0
+                                        delta_inf = (
+                                            inf_val - s['expected_influencer']
+                                        )
+                                        st.metric(
+                                            "بودجه اینفلوئنسر",
+                                            f"{inf_val:,}",
+                                            delta=f"{delta_inf:+,}",
+                                            delta_color="inverse"
+                                        )
+
+                                    if s["row_budgets"]:
+                                        st.markdown("**بودجه روزانه استخراج‌شده:**")
+                                        budget_rows = []
+                                        for i, b in enumerate(s["row_budgets"]):
+                                            status = (
+                                                "❌ خالی"
+                                                if b is None
+                                                else f"{b:,} تومان"
+                                            )
+                                            budget_rows.append(f"روز {i+1}: {status}")
+                                        st.code("\n".join(budget_rows))
+
+                                if all_errors:
+                                    st.error("**❌ خطاهای اجباری:**")
+                                    for err in all_errors:
+                                        st.error(f"• {err}")
+
+                                if all_warnings:
+                                    st.warning("**⚠️ هشدارها:**")
+                                    for warn in all_warnings:
+                                        st.warning(f"• {warn}")
+
+                                if not all_errors and not all_warnings:
+                                    st.success("✅ بودجه و Reach کاملاً معتبر هستند.")
+                                elif not all_errors:
+                                    st.info("ℹ️ خطای بحرانی وجود ندارد.")
+
+                    # ── دکمه‌های دانلود ──
+                    st.write("")
+                    dl1, dl2, _ = st.columns([1, 1, 2])
+                    with dl1:
+                        st.download_button(
+                            "📥 دانلود Markdown",
+                            full_content,
+                            f"{brand_name}_plan.md",
+                            "text/markdown",
+                            use_container_width=True
+                        )
+                    with dl2:
+                        st.download_button(
+                            "📄 دانلود TXT",
+                            full_content,
+                            f"{brand_name}_plan.txt",
+                            "text/plain",
+                            use_container_width=True
+                        )
+
+                except Exception as e:
+                    logger.error(f"Generation error: {e}")
+                    refund_credit(user.id, credits)
+                    st.error("خطا در ارتباط با سرور. اعتبار شما بازگردانده شد.")
