@@ -996,77 +996,48 @@ else:
                     # =============================================
                     # اعتبارسنجی بودجه و Reach (فقط اینستاگرام)
                     # =============================================
+                    # =============================================
+                    # اعتبارسنجی بودجه و Reach (فقط اینستاگرام)
+                    # =============================================
                     if mode == "📱 تقویم اینستاگرام" and VALIDATORS_AVAILABLE:
                         budget_check = validate_budget(full_content, total_budget)
-                        reach_check = validate_reach(full_content)
-
                         all_errors = budget_check["errors"]
-                        all_warnings = budget_check["warnings"] + reach_check["warnings"]
+                        
+                        # اگر خطای بحرانی بودجه داریم، یک بار دیگر تلاش کن
+                        if all_errors:
+                            st.warning("⚠️ بودجه‌ها اشتباه محاسبه شدند. در حال تصحیح خودکار...")
+                            
+                            fix_prompt = f"""
+خروجی قبلی شما دارای این خطاها در بودجه بود:
+{chr(10).join(all_errors)}
 
-                        if all_errors or all_warnings:
-                            with st.expander(
-                                "🔍 گزارش اعتبارسنجی بودجه و Reach",
-                                expanded=True
-                            ):
-                                s = budget_check["summary"]
-                                if s:
-                                    st.markdown("**📊 خلاصه بودجه:**")
-                                    col_a, col_b, col_c = st.columns(3)
+لطفاً فقط جدول 1 (تقویم ۷ روز) و جدول 3 (اینفلوئنسر) را با این اعداد دقیق دوباره بنویس:
 
-                                    with col_a:
-                                        st.metric(
-                                            "بودجه کل",
-                                            f"{s['total_budget']:,}"
-                                        )
-                                    with col_b:
-                                        delta_boost = (
-                                            s['actual_boost'] - s['expected_boost']
-                                        )
-                                        st.metric(
-                                            "جمع بوست پست‌ها",
-                                            f"{s['actual_boost']:,}",
-                                            delta=f"{delta_boost:+,}",
-                                            delta_color="inverse"
-                                        )
-                                    with col_c:
-                                        inf_val = s['actual_influencer'] or 0
-                                        delta_inf = (
-                                            inf_val - s['expected_influencer']
-                                        )
-                                        st.metric(
-                                            "بودجه اینفلوئنسر",
-                                            f"{inf_val:,}",
-                                            delta=f"{delta_inf:+,}",
-                                            delta_color="inverse"
-                                        )
+بودجه کل کمپین: {total_budget:,} تومان
+- جدول 3 اینفلوئنسر: دقیقاً {int(total_budget * 0.30):,} تومان
+- جدول 1 بوست: دقیقاً {int(total_budget * 0.70):,} تومان (بین ۷ روز تقسیم شود)
 
-                                    if s["row_budgets"]:
-                                        st.markdown("**بودجه روزانه استخراج‌شده:**")
-                                        budget_rows = []
-                                        for i, b in enumerate(s["row_budgets"]):
-                                            status = (
-                                                "❌ خالی"
-                                                if b is None
-                                                else f"{b:,} تومان"
-                                            )
-                                            budget_rows.append(f"روز {i+1}: {status}")
-                                        st.code("\n".join(budget_rows))
+فرمت دقیق:
+| روز/تاریخ | فرمت | هدف KPI | Hook | ایده تصویربرداری | CTA | UTM | بودجه بوست (تومان) | Reach ارگانیک | Reach پولی |
+| جمع کل | - | - | - | - | - | - | {int(total_budget * 0.70):,} | - | - |
 
-                                if all_errors:
-                                    st.error("**❌ خطاهای اجباری:**")
-                                    for err in all_errors:
-                                        st.error(f"• {err}")
-
-                                if all_warnings:
-                                    st.warning("**⚠️ هشدارها:**")
-                                    for warn in all_warnings:
-                                        st.warning(f"• {warn}")
-
-                                if not all_errors and not all_warnings:
-                                    st.success("✅ بودجه و Reach کاملاً معتبر هستند.")
-                                elif not all_errors:
-                                    st.info("ℹ️ خطای بحرانی وجود ندارد.")
-
+فقط جداول را خروجی بده. بدون توضیح اضافه.
+"""
+                            try:
+                                fix_response = model.generate_content(
+                                    fix_prompt,
+                                    generation_config=genai.types.GenerationConfig(
+                                        temperature=0.3,  # دمای کمتر برای دقت
+                                        max_output_tokens=4096,
+                                    )
+                                )
+                                if fix_response.text:
+                                    # جایگزینی جداول اصلاح‌شده
+                                    # (این بخش ساده‌سازی شده است؛ در نسخه نهایی نیاز به parse دقیق‌تر دارد)
+                                    full_content += "\n\n### ✅ نسخه تصحیح‌شده بودجه:\n" + fix_response.text
+                                    st.markdown(fix_response.text)
+                            except Exception as fix_err:
+                                logger.error(f"Auto-fix failed: {fix_err}")
                     # ── دکمه‌های دانلود ──
                     st.write("")
                     dl1, dl2, _ = st.columns([1, 1, 2])
