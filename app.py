@@ -2,6 +2,7 @@ import os
 import logging
 import streamlit as st
 import google.generativeai as genai
+from core.validators import validate_budget, validate_reach
 from supabase import create_client, Client
 from datetime import date
 
