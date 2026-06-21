@@ -460,3 +460,100 @@ def build_seo_repair_prompt(base_prompt: str, raw_output: str, errors: List[str]
 
 حالا فقط همان JSON را به‌صورت کامل، معتبر و بدون هیچ متن اضافه دوباره تولید کن.
 """
+
+def build_instagram_prompt(
+    current_date: str,
+    brand_name: str,
+    niche: str,
+    target_audience: str,
+    competitors: str,
+    current_followers: int,
+    total_budget: int,
+    admin_on_camera: str,
+    campaign_goal: str,
+    campaign_phase: str,
+) -> str:
+    """
+    ساخت prompt کامل برای تولید تقویم اینستاگرام
+    """
+    
+    # محاسبه بودجه‌ها
+    boost_budget = int(total_budget * 0.70)
+    influencer_budget = int(total_budget * 0.30)
+    
+    # تقویم 7 روزه
+    days_skeleton = []
+    for day in range(1, 8):
+        days_skeleton.append({
+            "day_index": day,
+            "date": f"روز {day}",
+            "format": "Feed Post" if day % 2 == 1 else "Reel",
+            "kpi": "Reach/Engagement",
+            "utm": f"utm_source=ig&utm_campaign=day{day}"
+        })
+    
+    # استوری‌های 3 روز اول
+    story_skeleton = []
+    for day in [1, 2, 3]:
+        story_skeleton.append({
+            "day_index": day,
+            "date": f"روز {day}",
+            "items": [
+                {"time": "09:00"},
+                {"time": "14:00"},
+                {"time": "20:00"}
+            ]
+        })
+    
+    # داده‌های مرحله
+    data = {
+        "current_date": current_date,
+        "brand_name": brand_name,
+        "niche": niche,
+        "target_audience": target_audience,
+        "competitors": competitors,
+        "current_followers": current_followers,
+        "admin_on_camera": admin_on_camera,
+        "campaign_goal": campaign_goal,
+        "campaign_phase": campaign_phase,
+    }
+    
+    skeleton = {
+        "days": days_skeleton,
+        "story_days": story_skeleton
+    }
+    
+    # فراخوانی تابع خلاقه
+    return build_instagram_creative_prompt(data, skeleton)
+
+
+def build_seo_prompt_main(
+    current_date: str,
+    brand_name: str,
+    niche: str,
+    target_audience: str,
+    competitors: str,
+    domain_authority: int,
+    monthly_traffic: int,
+    seo_strategy: str,
+    campaign_goal: str,
+    cms_platform: str,
+) -> str:
+    """
+    ساخت prompt کامل برای تولید کلاستر SEO
+    """
+    
+    data = {
+        "current_date": current_date,
+        "brand_name": brand_name,
+        "niche": niche,
+        "target_audience": target_audience,
+        "competitors": competitors,
+        "domain_authority": domain_authority,
+        "monthly_traffic": monthly_traffic,
+        "seo_strategy": seo_strategy,
+        "campaign_goal": campaign_goal,
+        "cms_platform": cms_platform,
+    }
+    
+    return build_seo_prompt(data)
