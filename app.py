@@ -728,7 +728,6 @@ else:
                 st.error("خطا در کسر اعتبار.")
             else:
                 try:
-                    # ── ساخت پرامپت ──
                     if mode == "📱 تقویم اینستاگرام":
                         system_instruction = INSTAGRAM_SYSTEM_INSTRUCTION
                         user_prompt = build_instagram_prompt(
@@ -763,16 +762,6 @@ else:
                         system_instruction=system_instruction,
                     )
 
-                    st.markdown(
-                        """<div style='font-size:.8rem;font-weight:600;color:#6366f1;
-                        text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem;'>
-                        📊 خروجی آژانسی</div>""",
-                        unsafe_allow_html=True,
-                    )
-
-                    output_placeholder = st.empty()
-
-                    # ── تلاش اول ──
                     gen_config_main = genai.types.GenerationConfig(
                         temperature=0.7,
                         max_output_tokens=16384,
@@ -790,83 +779,183 @@ else:
                         for chunk in stream:
                             if chunk.text:
                                 full_content += chunk.text
-                                output_placeholder.markdown(full_content)
 
                     if not full_content.strip():
                         raise ValueError("خروجی خالی از مدل دریافت شد.")
 
-                    # ── اعتبارسنجی (فقط اینستاگرام) ──
+                    # ── پاکسازی JSON ──
+                    clean = full_content.strip()
+                    if clean.startswith("```"):
+                        clean = re.sub(r"^```[a-zA-Z]*\n?", "", clean)
+                        clean = re.sub(r"```$", "", clean).strip()
+
+                    # ── Parse JSON ──
+                    try:
+                        data = json.loads(clean)
+                    except json.JSONDecodeError:
+                        st.warning("خروجی JSON معتبر نبود. در حال تلاش مجدد…")
+                        raise ValueError("JSON parse error")
+
+                    # ── نمایش اینستاگرام ──
                     if mode == "📱 تقویم اینستاگرام":
-                        validation = validate_instagram_output(
-                            full_content, total_budget, current_followers
-                        )
 
-                        # اگر خطای بحرانی: تلاش دوم
-                        if not validation["is_valid"]:
-                            st.warning(
-                                "⚠️ خطا در بودجه/ساختار — در حال تصحیح خودکار …"
+                        st.markdown("## 📅 تقویم ۷ روزه محتوا")
+                        feed = data.get("feed_plan", [])
+                        if feed:
+                            feed_rows = []
+                            for item in feed:
+                                feed_rows.append({
+                                    "روز": f"روز {item.get('day_index','')}",
+                                    "Hook": item.get("hook", ""),
+                                    "ایده تصویر": item.get("shot_idea", ""),
+                                    "CTA": item.get("cta", ""),
+                                })
+                            st.dataframe(
+                                feed_rows,
+                                use_container_width=True,
+                                hide_index=True,
                             )
 
-                            fix_prompt = build_instagram_repair_prompt(
-                                base_prompt=user_prompt,
-                                raw_output=full_content,
-                                errors=validation["errors"],
-                            )
-
-                            gen_config_fix = genai.types.GenerationConfig(
-                                temperature=0.3,
-                                max_output_tokens=8192,
-                                top_p=0.85,
-                            )
-
-                            fix_content = ""
-                            with st.spinner("تصحیح خودکار …"):
-                                fix_stream = model.generate_content(
-                                    fix_prompt,
-                                    stream=True,
-                                    generation_config=gen_config_fix,
+                        st.markdown("## 📸 استوری‌ها")
+                        story_plan = data.get("story_plan", [])
+                        for day_story in story_plan:
+                            st.markdown(f"**روز {day_story.get('day_index','')}**")
+                            stories = day_story.get("stories", [])
+                            if stories:
+                                story_rows = []
+                                for s in stories:
+                                    story_rows.append({
+                                        "شماره": s.get("story_index", ""),
+                                        "سناریو": s.get("scenario", ""),
+                                        "استیکر": s.get("sticker", ""),
+                                    })
+                                st.dataframe(
+                                    story_rows,
+                                    use_container_width=True,
+                                    hide_index=True,
                                 )
-                                for chunk in fix_stream:
-                                    if chunk.text:
-                                        fix_content += chunk.text
 
-                            if fix_content.strip():
-                                full_content += (
-                                    "\n\n---\n### ✅ نسخه تصحیح‌شده:\n" + fix_content
-                                )
-                                output_placeholder.markdown(full_content)
+                        st.markdown("## 🤝 بریف اینفلوئنسر")
+                        brief = data.get("influencer_brief", {})
+                        if brief:
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown(f"**رنج فالوور:** {brief.get('follower_range','')}")
+                                st.markdown(f"**ددلاین:** {brief.get('deadline','')}")
+                                st.markdown("**بایدها:**")
+                                for d in brief.get("dos", []):
+                                    st.markdown(f"✅ {d}")
+                            with col2:
+                                st.markdown("**نبایدها:**")
+                                for d in brief.get("donts", []):
+                                    st.markdown(f"❌ {d}")
+                                st.markdown(f"**دیالوگ نمونه:**")
+                                st.info(brief.get("sample_dialogue", ""))
 
-                            # اعتبارسنجی مجدد
-                            validation = validate_instagram_output(
-                                full_content, total_budget, current_followers
+                        st.markdown("## 🚨 ماتریس بحران")
+                        crisis = data.get("crisis_matrix", [])
+                        if crisis:
+                            crisis_rows = []
+                            for c in crisis:
+                                crisis_rows.append({
+                                    "نوع": c.get("type", ""),
+                                    "پاسخ عمومی": c.get("public_response", ""),
+                                    "پاسخ خصوصی": c.get("private_response", ""),
+                                    "ددلاین": c.get("deadline", ""),
+                                    "اقدام": c.get("action", ""),
+                                })
+                            st.dataframe(
+                                crisis_rows,
+                                use_container_width=True,
+                                hide_index=True,
                             )
 
-                        # نمایش نتیجه
-                        if validation["is_valid"]:
-                            st.success(
-                                f"✅ خروجی تأیید شد — امتیاز کیفیت: {validation['score']}/100"
-                            )
-                        else:
-                            st.warning(
-                                f"⚠️ خروجی با برخی ایرادات — امتیاز: {validation['score']}/100"
-                            )
+                        st.success("✅ تقویم اینستاگرام با موفقیت تولید شد")
 
-                        if validation["warnings"]:
-                            for w in validation["warnings"]:
-                                st.caption(f"💡 {w}")
-
+                    # ── نمایش SEO ──
                     else:
-                        st.success("✅ خروجی SEO با موفقیت تولید شد")
+                        st.markdown("## 🔍 Topic Cluster")
+                        cluster = data.get("topic_cluster", [])
+                        if cluster:
+                            cluster_rows = []
+                            for item in cluster:
+                                cluster_rows.append({
+                                    "نوع صفحه": item.get("page_type", ""),
+                                    "H1": item.get("h1", ""),
+                                    "کلمه کلیدی": item.get("primary_keyword", ""),
+                                    "Intent": item.get("intent", ""),
+                                    "سختی": item.get("difficulty", ""),
+                                })
+                            st.dataframe(
+                                cluster_rows,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
 
-                    # ── دکمه‌های دانلود ──
+                        st.markdown("## 📊 Content Gap")
+                        gap = data.get("content_gap", [])
+                        if gap:
+                            gap_rows = []
+                            for item in gap:
+                                gap_rows.append({
+                                    "رقیب": item.get("competitor", ""),
+                                    "محتوای موجود": item.get("existing_content", ""),
+                                    "ضعف": item.get("weakness", ""),
+                                    "استراتژی ما": item.get("our_strategy", ""),
+                                })
+                            st.dataframe(
+                                gap_rows,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                        st.markdown("## 🔗 Link Building")
+                        links = data.get("link_building", [])
+                        if links:
+                            link_rows = []
+                            for item in links:
+                                link_rows.append({
+                                    "نوع لینک": item.get("link_type", ""),
+                                    "منبع": item.get("source", ""),
+                                    "Anchor Text": item.get("anchor_text", ""),
+                                    "نوع Follow": item.get("follow_type", ""),
+                                    "اولویت": item.get("priority", ""),
+                                })
+                            st.dataframe(
+                                link_rows,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                        st.markdown("## 📅 تقویم محتوا (۸ هفته)")
+                        calendar = data.get("calendar", [])
+                        if calendar:
+                            cal_rows = []
+                            for item in calendar:
+                                cal_rows.append({
+                                    "هفته": item.get("week", ""),
+                                    "عنوان": item.get("title", ""),
+                                    "کلمه کلیدی": item.get("keyword", ""),
+                                    "نوع صفحه": item.get("page_type", ""),
+                                    "هدف": item.get("goal", ""),
+                                })
+                            st.dataframe(
+                                cal_rows,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                        st.success("✅ کلاستر SEO با موفقیت تولید شد")
+
+                    # ── دانلود JSON ──
                     st.write("")
                     dl1, dl2, _ = st.columns([1, 1, 2])
                     with dl1:
                         st.download_button(
-                            "📥 دانلود Markdown",
-                            full_content,
-                            f"{brand_name}_plan.md",
-                            "text/markdown",
+                            "📥 دانلود JSON",
+                            json.dumps(data, ensure_ascii=False, indent=2),
+                            f"{brand_name}_plan.json",
+                            "application/json",
                             use_container_width=True,
                         )
                     with dl2:
