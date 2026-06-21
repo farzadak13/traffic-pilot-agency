@@ -1,29 +1,3 @@
-دو تا مشکل داری:
-
-### مشکل ۱: خط `from ` ناقص است
-این خط خطای syntax می‌دهد. باید حذف شود.
-
-### مشکل ۲: `prompts.py` داخل پوشه `ai` است
-باید مسیر import را اصلاح کنی.
-
----
-
-## راه‌حل:
-
-### قدم ۱: ساختار پوشه را چک کن
-```
-traffic-pilot-agency/
-├── app.py
-└── ai/
-    ├── __init__.py        ← این فایل باید وجود داشته باشد (حتی خالی)
-    └── prompts.py
-```
-
-اگر فایل `__init__.py` در پوشه `ai` نداری، **حتماً بسازش** (می‌تواند کاملاً خالی باشد). بدون این فایل، پایتون پوشه را به‌عنوان package نمی‌شناسد.
-
-### قدم ۲: بالای `app.py` را اینطوری اصلاح کن
-
-```python
 import os
 import re
 import json
@@ -44,38 +18,6 @@ from ai.prompts import (
     build_seo_prompt,
     build_seo_repair_prompt,
 )
-```
-
----
-
-### ⚠️ نکته مهم:
-در کد قدیمی‌ات این‌ها را import می‌کردی:
-```python
-build_instagram_prompt,
-build_fix_prompt,
-```
-
-ولی در فایل `prompts.py` جدیدی که نوشتم، اسم توابع این‌هاست:
-- `build_instagram_creative_prompt` (نه `build_instagram_prompt`)
-- `build_instagram_repair_prompt` و `build_seo_repair_prompt` (نه `build_fix_prompt`)
-
-پس مطمئن شو که از کد جدید `app.py` که در پیام قبلی برات نوشتم استفاده می‌کنی، نه نسخه قدیمی.
-
----
-
-### قدم ۳: Commit و Push کن به گیت‌هاب
-بعد از تغییرات، حتماً:
-```bash
-git add .
-git commit -m "fix imports"
-git push
-```
-
-و در Streamlit Cloud صبر کن تا دوباره deploy شود.
-
----
-
-اگر باز هم خطا گرفتی، خروجی `ls ai/` یا اسکرین‌شات ساختار پوشه‌ها را برام بفرست تا دقیق بررسی کنم.
 
 # ── تنظیمات لاگ ──
 logging.basicConfig(level=logging.INFO)
